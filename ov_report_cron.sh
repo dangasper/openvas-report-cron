@@ -187,7 +187,7 @@ process_reports() {
 }
 
 # Main script start
-echo "----------- STARTING REPORT PULL ---------"
+echo "----------- STARTING REPORT PULL $TODAY---------"
 
 # Call test_omp function
 test_omp
