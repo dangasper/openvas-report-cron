@@ -10,6 +10,7 @@ TODAY=$(date +%Y-%m-%d)
 REPORTLOC=""
 REPORTDB=""
 PROCESSEDLOC=""
+APIURL=""
 
 # Test OMP connection - uses OMP ping exits script on failure
 test_omp() {
@@ -46,7 +47,10 @@ locate_reportdb() {
 
 pull_new_reports() {
 	echo "Pulling new reports."
-	echo ${NewReportID[@]}
+	for l in ${NewReportID[@]}
+	do
+		omp -h $HOST -u $USER -w $PASS -iX '<get_reports report_id="'${l}'"></get_reports>' > $REPORTLOC/${l}.xml
+	done
 	echo "New reports pulled."
 	# Update DB file with current reports pulled.
 	echo ${ReportID[@]} > $REPORTDB
@@ -104,6 +108,23 @@ get_reports() {
 	new_reports
 }
 
+start_process() {
+	echo "Uploading blah.."
+}
+
+process_reports() {
+	echo "----------- PROCESSING REPORTS ----------"
+	UnprocessedFiles=($(pwd)/reports/*.xml)
+	echo ${UnprocessedFiles[@]}
+	if [ `echo ${UnprocessedFiles[@]} | wc -w` -ge 1 ]
+	then
+		echo "`echo ${UnprocessedFiles[@]} | wc -w` unprocessed files found."
+		start_process
+	else
+		echo "No unprocssed files found. Exiting...."
+	fi
+}
+
 # Main script start
 echo "----------- STARTING REPORT PULL ---------"
 
@@ -115,5 +136,8 @@ get_tasks
 
 # Call get_reports function
 get_reports
+
+# Call process_reports function
+process_reports
 
 exit 0
