@@ -102,26 +102,45 @@ get_reports() {
 	# Check for reports folder before continuing
 	if [ ! -d "$REPORTLOC" ]
 	then
-		mkdir -p $(pwd)/reports/
+		mkdir -p $REPORTLOC
 	fi
 
 	new_reports
 }
 
 start_process() {
-	echo "Uploading blah.."
+	# Checks for processed folder before continuing
+	if [ ! -d "$PROCESSEDLOC" ]
+	then
+		mkdir -p $PROCESSEDLOC
+	fi
+
+	processedcount=0
+	for f in ${UnprocessedFiles[@]}
+	do
+		echo "Processing file $f"
+		PostStatus=$(curl -v -k -H 'Content-Type: application/xml' -d @$f $APIURL)
+		if [[ $PostStatus != *$RETURNSTATUS* ]]
+		then
+			echo "Processing $f failed"
+			echo "Status: $PostStatus"
+		else
+			echo "Processing $f completed"
+			ProcessedFile[$processedcount]=$f
+			processedcount=$[$processedcount+1]
+		fi
+	done
 }
 
 process_reports() {
 	echo "----------- PROCESSING REPORTS ----------"
-	UnprocessedFiles=($(pwd)/reports/*.xml)
-	echo ${UnprocessedFiles[@]}
+	UnprocessedFiles=(`find ${REPORTLOC} -iname "*.xml" -type f`)
 	if [ `echo ${UnprocessedFiles[@]} | wc -w` -ge 1 ]
 	then
 		echo "`echo ${UnprocessedFiles[@]} | wc -w` unprocessed files found."
 		start_process
 	else
-		echo "No unprocssed files found. Exiting...."
+		echo "No unprocessed files found."
 	fi
 }
 
@@ -139,5 +158,7 @@ get_reports
 
 # Call process_reports function
 process_reports
+
+echo "------------- REPORT SCRIPT COMPLETE -------------"
 
 exit 0
