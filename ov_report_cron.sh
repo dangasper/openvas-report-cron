@@ -49,7 +49,7 @@ pull_new_reports() {
 	echo "Pulling new reports."
 	for l in ${NewReportID[@]}
 	do
-		omp -h $HOST -u $USER -w $PASS -iX '<get_reports report_id="'${l}'"></get_reports>' > $REPORTLOC/${l}.xml
+		omp -h $HOST -u $USER -w $PASS -iX '<get_reports report_id="'${l}'"></get_reports>' | sed '/<get_reports_response.*>/d'> $REPORTLOC/${l}.xml
 	done
 	echo "New reports pulled."
 	# Update DB file with current reports pulled.
