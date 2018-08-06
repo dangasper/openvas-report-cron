@@ -108,6 +108,27 @@ get_reports() {
 	new_reports
 }
 
+post_api() {
+	printf  "\n-----------------------\n"
+	echo "Processing file $1"
+	set +x
+	PostStatus=$(curl -v -k -X POST -H 'Content-Type: application/xml' -d @$1 $APIURL)
+	if [[ $PostStatus != *$RETURNSTATUS* ]]
+	then
+		printf  "\n-----------------------\n"
+		echo "Processing $1 failed"
+		echo "Status: $PostStatus"
+		unprocessedcount=$[$unprocessedcount+1]
+		printf  "\n-----------------------\n"
+	else
+		printf  "\n-----------------------\n"
+		echo "Processing $1 completed"
+		ProcessedFile[$processedcount]=$1
+		processedcount=$[$processedcount+1]
+		printf  "\n-----------------------\n"
+	fi
+}
+
 start_process() {
 	# Checks for processed folder before continuing
 	if [ ! -d "$PROCESSEDLOC" ]
@@ -116,20 +137,26 @@ start_process() {
 	fi
 
 	processedcount=0
+	unprocessedcount=0
 	for f in ${UnprocessedFiles[@]}
 	do
-		echo "Processing file $f"
-		PostStatus=$(curl -v -k -H 'Content-Type: application/xml' -d @$f $APIURL)
-		if [[ $PostStatus != *$RETURNSTATUS* ]]
-		then
-			echo "Processing $f failed"
-			echo "Status: $PostStatus"
-		else
-			echo "Processing $f completed"
-			ProcessedFile[$processedcount]=$f
-			processedcount=$[$processedcount+1]
-		fi
+		post_api $f
 	done
+}
+
+clean_process() {
+	if [ $unprocessedcount -ge 1 ]
+	then
+		echo "$unprocessedcount files failed to process."
+		return 1
+	fi
+	if [ $processedcount -ge 1 ]
+	then
+		echo "$processedcount files processed successfully."
+		echo ${ProcessedFile[@]}
+		#mv ${ProcessedFile[@]} $PROCESSEDLOC
+		#tar -czvf $TODAY.tar.gz $PROCESSEDLOC/${ProcessedFile[@]}
+	fi
 }
 
 process_reports() {
@@ -142,6 +169,8 @@ process_reports() {
 	else
 		echo "No unprocessed files found."
 	fi
+
+	clean_process
 }
 
 # Main script start
