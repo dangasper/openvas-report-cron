@@ -51,7 +51,12 @@ pull_new_reports() {
         echo "Pulling new reports."
         for l in ${NewReportID[@]}
         do
-                omp -h $HOST -u $USER -w $PASS -iX '<get_reports report_id="'${l}'"></get_reports>' | sed '/<get_reports_response.*>/d' > $REPORTLOC/${l}.xml
+                omp -h $HOST -u $USER -w $PASS -iX '<get_reports report_id="'${l}'"></get_reports>' > $REPORTLOC/${l}.xml
+                #Removes top response part of report in order to allow proper API Ingestion for tested system
+                sed -i '/<get_reports_response.*>/d' $REPORTLOC${l}.xml
+                #Removes extraneous added data to <host> sections of Openvas9 in order to properly parse through API on tested system
+                sed -i '/<asset asset_id=""><\/asset>/d' $REPORTLOC${l}.xml
+
         done
         echo "New reports pulled."
         # Update DB file with current reports pulled.
@@ -140,8 +145,6 @@ start_process() {
                 mkdir -p $PROCESSEDLOC
         fi
 
-        processedcount=0
-        unprocessedcount=0
         for f in ${UnprocessedFiles[@]}
         do
                 post_api $f
@@ -174,6 +177,10 @@ clean_process() {
 # Process reports function - Looks for reports in report location folder, if reports found start processing functions, if none then exits. Calls cleanup process function.
 process_reports() {
         echo "----------- PROCESSING REPORTS ----------"
+        
+        processedcount=0
+        unprocessedcount=0
+
         UnprocessedFiles=(`find ${REPORTLOC} -iname "*.xml" -type f -printf "%f\n"`)
         if [ `echo ${UnprocessedFiles[@]} | wc -w` -ge 1 ]
         then
@@ -187,7 +194,7 @@ process_reports() {
 }
 
 # Main script start
-echo "----------- STARTING REPORT PULL $TODAY---------"
+echo "----------- STARTING REPORT PULL ---------"
 
 # Call test_omp function
 test_omp
